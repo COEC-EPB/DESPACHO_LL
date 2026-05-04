@@ -167,8 +167,8 @@ button { background:#22c55e; cursor:pointer; }
 <div class="label">Tipo de Serviço</div>
 <select id="tipo" onchange="carregar()"></select>
 
-<div class="label">Trecho</div>
-<select id="trecho" onchange="carregar()"></select>
+<div class="label">SOMA</div>
+<select id="soma" onchange="carregar()"></select>
 
 <div class="label">SGM</div>
 <select id="sgm" onchange="carregar()"></select>
@@ -495,20 +495,20 @@ async function carregar(){
   const busca = document.getElementById("busca").value.toUpperCase();
   const crit = document.getElementById("crit").value;
   const tipo = document.getElementById("tipo").value;
-  const trecho = document.getElementById("trecho").value;
+  const soma = document.getElementById("soma").value;
   const alim = document.getElementById("alim").value;
   const sgm = document.getElementById("sgm").value;
 
-  const setTipo=new Set(), setTrecho=new Set(), setAlim=new Set();
+  const setTipo=new Set(), setsoma=new Set(), setAlim=new Set();
 
   dados.forEach(p=>{
     if(p.tipo) setTipo.add(p.tipo);
-    if(p.trecho) setTrecho.add(p.trecho);
+    if(p.soma) setsoma.add(p.soma);
     if(p.alimentador) setAlim.add(p.alimentador);
   });
 
   preencher("tipo",setTipo);
-  preencher("trecho",setTrecho);
+  preencher("soma",setsoma);
   preencher("alim",setAlim);
 
   coresTipo = {};
@@ -520,7 +520,7 @@ async function carregar(){
     if(busca && !p.os?.toUpperCase().includes(busca)) return false;
     if(crit && !p.criticidade?.includes(crit)) return false;
     if(tipo && p.tipo!==tipo) return false;
-    if(trecho && p.trecho!==trecho) return false;
+    if(soma && p.soma!==soma) return false;
     if(alim && p.alimentador!==alim) return false;
     if(sgm && p.sgm!==alim) return false;
     return true;
