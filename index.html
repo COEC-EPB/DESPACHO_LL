@@ -90,13 +90,20 @@ button { background:#22c55e; cursor:pointer; }
 .label { margin-top:10px; font-size:12px; color:#94a3b8; }
 
 /* PROGRESS */
-#progress { margin-top:10px; background:#111827; border-radius:8px; }
+#progress {
+  margin-top:10px;
+  background:#0f172a;
+  border-radius:999px;
+  overflow:hidden;
+}
+
 #bar {
-  height:20px;
+  height:18px;
   width:0%;
-  background:#22c55e;
+  background:linear-gradient(90deg,#22c55e,#16a34a);
   text-align:center;
-  font-size:12px;
+  font-size:11px;
+  transition:0.3s;
 }
 
 /* LEGENDA */
@@ -142,12 +149,31 @@ button { background:#22c55e; cursor:pointer; }
 
 <div id="sidebar">
 
-<h3>📁 Upload</h3>
-<input type="file" id="file">
-<button onclick="enviar()">Enviar</button>
+<h3>📁 Upload de Base</h3>
 
-<div id="progress"><div id="bar">0%</div></div>
-<div id="status"></div>
+<div style="
+  background:#1e293b;
+  padding:15px;
+  border-radius:10px;
+  margin-top:10px;
+">
+
+  <input type="file" id="file" style="margin-bottom:10px;">
+
+  <button onclick="enviar()" style="
+    background:#22c55e;
+    font-weight:bold;
+  ">
+    🚀 Enviar Base
+  </button>
+
+  <div id="progress" style="margin-top:10px;">
+    <div id="bar">0%</div>
+  </div>
+
+  <div id="status" style="margin-top:10px; font-size:12px;"></div>
+
+</div>
 
 <hr>
 
@@ -253,7 +279,10 @@ function login(){
   } else alert("Login inválido");
 }
 
-function logout(){ location.reload(); }
+function logout(){
+  localStorage.removeItem("auth");
+  location.reload();
+}
 
 /* MENU */
 function toggleMenu(){
@@ -278,6 +307,21 @@ function toggleLegenda(){
   } else {
     atualizarLegenda();
     legendaVisivel = true;
+  }
+}
+  function login(){
+  if(user.value==="admin" && senha.value==="123456"){
+
+    localStorage.setItem("auth","true"); // 🔥 salva sessão
+
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="block";
+
+    init();
+    carregar();
+
+  } else {
+    alert("Login inválido");
   }
 }
 
@@ -621,6 +665,17 @@ if(alim) ativos.push("Alim: " + alim);
 document.getElementById("filtrosAtivos").innerText =
   ativos.length ? "Filtros: " + ativos.join(" | ") : "";
 }
+  window.onload = () => {
+
+  if(localStorage.getItem("auth") === "true"){
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="block";
+
+    init();
+    carregar();
+  }
+
+};
 </script>
 
 </body>
