@@ -615,7 +615,7 @@ const setSGM  = new Set();
 // 🔥 NORMALIZAÇÃO DOS DADOS
 dados.forEach(p => {
 
-```
+
 if(p.tipo) setTipo.add(p.tipo);
 
 if(p.soma){
@@ -627,7 +627,7 @@ if(p.soma){
 if(p.alimentador) setAlim.add(p.alimentador);
 
 if(p.sgm) setSGM.add(p.sgm);
-```
+
 
 });
 
@@ -658,7 +658,7 @@ let bounds = [];
 // 🔥 FILTRO FINAL
 dados = dados.filter(p => {
 
-```
+
 if(busca && !p.os?.toUpperCase().includes(busca)) return false;
 if(crit && !p.criticidade?.includes(crit)) return false;
 if(tipo && p.tipo !== tipo) return false;
@@ -667,7 +667,7 @@ if(alim && p.alimentador !== alim) return false;
 if(sgm && p.sgm !== sgm) return false;
 
 return true;
-```
+
 
 });
 
