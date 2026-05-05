@@ -595,96 +595,59 @@ function preencher(id,set){
 /* CARREGAR */
 async function carregar(){
 
-const res = await fetch("https://despacholinhaviva.pedro-fillype.workers.dev/api/dados");
-let dados = await res.json();
+  const res = await fetch("https://despacholinhaviva.pedro-fillype.workers.dev/api/dados");
+  let dados = await res.json();
 
-// 🔥 PEGA FILTROS ATUAIS
-const busca = document.getElementById("busca").value.toUpperCase();
-const crit = document.getElementById("crit").value;
-const tipo = document.getElementById("tipo").value;
-const soma = document.getElementById("soma").value;
-const alim = document.getElementById("alim").value;
-const sgm  = document.getElementById("sgm").value;
+  const busca = document.getElementById("busca").value.toUpperCase();
+  const crit = document.getElementById("crit").value;
+  const tipo = document.getElementById("tipo").value;
+  const soma = document.getElementById("soma").value;
+  const alim = document.getElementById("alim").value;
+  const sgm = document.getElementById("sgm").value;
 
-// 🔥 SETS
-const setTipo = new Set();
-const setSoma = new Set();
-const setAlim = new Set();
-const setSGM  = new Set();
+  const setTipo=new Set(), setsoma=new Set(), setAlim=new Set();
 
-// 🔥 NORMALIZAÇÃO DOS DADOS
-dados.forEach(p => {
-
-
-if(p.tipo) setTipo.add(p.tipo);
-
-if(p.soma){
+  dados.forEach(p=>{
+    if(p.tipo) setTipo.add(p.tipo);
+    if(p.soma){
   const valor = p.soma.trim().toUpperCase();
-  setSoma.add(valor);
-  p.soma = valor;
-}
+  setsoma.add(valor);
+  p.soma = valor; // 🔥 já corrige para o filtro funcionar
+};
+    if(p.alimentador) setAlim.add(p.alimentador);
+  });
 
-if(p.alimentador) setAlim.add(p.alimentador);
+  preencher("tipo",setTipo);
+  if(document.getElementById("soma").options.length <= 1){
+  preencher("soma", setsoma);
+};
+  preencher("alim",setAlim);
 
-if(p.sgm) setSGM.add(p.sgm);
+  coresTipo = {};
+  cluster.clearLayers();
 
+  let bounds = [];
 
-});
+  dados = dados.filter(p=>{
+    if(busca && !p.os?.toUpperCase().includes(busca)) return false;
+    if(crit && !p.criticidade?.includes(crit)) return false;
+    if(tipo && p.tipo!==tipo) return false;
+    if(soma && p.soma!==soma) return false;
+    if(alim && p.alimentador!==alim) return false;
+    if(sgm && p.sgm!==sgm) return false;
+    return true;
+  });
 
-// 🔥 GUARDA SELEÇÃO ATUAL
-const somaSelecionado = soma;
-const tipoSelecionado = tipo;
-const alimSelecionado = alim;
-const sgmSelecionado  = sgm;
+  contador.innerText="Total: "+dados.length;
 
-// 🔥 PREENCHE SELECTS
-preencher("tipo", setTipo);
-preencher("soma", setSoma);
-preencher("alim", setAlim);
-preencher("sgm", setSGM);
+  dados.forEach(p => {
 
-// 🔥 RESTAURA VALORES
-document.getElementById("tipo").value = tipoSelecionado;
-document.getElementById("soma").value = somaSelecionado;
-document.getElementById("alim").value = alimSelecionado;
-document.getElementById("sgm").value  = sgmSelecionado;
+  const lat = parseFloat(p.lat);
+  const lon = parseFloat(p.lon);
 
-// 🔥 LIMPA MAPA
-coresTipo = {};
-cluster.clearLayers();
+  if(isNaN(lat) || isNaN(lon)) return;
 
-let bounds = [];
-
-// 🔥 FILTRO FINAL
-dados = dados.filter(p => {
-
-
-if(busca && !p.os?.toUpperCase().includes(busca)) return false;
-if(crit && !p.criticidade?.includes(crit)) return false;
-if(tipo && p.tipo !== tipo) return false;
-if(soma && p.soma !== soma) return false;
-if(alim && p.alimentador !== alim) return false;
-if(sgm && p.sgm !== sgm) return false;
-
-return true;
-
-
-});
-
-contador.innerText = "Total: " + dados.length;
-
-// 🔥 CRIA MARKERS
-dados.forEach(p => {
-
-
-const lat = parseFloat(p.lat);
-const lon = parseFloat(p.lon);
-
-if(isNaN(lat) || isNaN(lon)) return;
-
-bounds.push([lat, lon]);
-
-const marker = L.marker([lat, lon], {
+  const marker = L.marker([lat,lon], {
   icon: L.divIcon({
     html:`<div style="
       width:14px;
@@ -704,20 +667,20 @@ marker.bindPopup(`
   <b>Alimentador:</b> ${p.alimentador}<br>
   <b>Criticidade:</b> ${p.criticidade}<br>
   <b>Tag:</b> ${p.tag}<br>
-  <b>SGM:</b> ${p.sgm}<br>
-  <b>Soma:</b> ${p.soma}<br>
+  <b>OS SGM:</b> ${p.sgm}<br>
 `);
-
-// 🔥 CLICK COM CTRL
+  // ✅ AQUI É O LUGAR CERTO
 marker.on('click', function (e) {
 
   const sgm = this.options.dados.sgm;
 
+  // CTRL pressionado → acumula
   if(e.originalEvent.ctrlKey){
     if(!selecionadosClick.includes(sgm)){
       selecionadosClick.push(sgm);
     }
   } else {
+    // clique normal → reinicia seleção
     selecionadosClick = [sgm];
   }
 
@@ -729,21 +692,17 @@ marker.on('click', function (e) {
 
 });
 
-cluster.addLayer(marker);
-
-
+  cluster.addLayer(marker);
 });
 
-if(bounds.length){
-map.fitBounds(bounds);
-}
+  if(bounds.length){
+    map.fitBounds(bounds);
+  }
 
-if(legendaVisivel){
-atualizarLegenda();
-}
-
-// 🔥 FILTROS ATIVOS
-let ativos = [];
+  if(legendaVisivel){
+    atualizarLegenda();
+  }
+  let ativos = [];
 
 if(busca) ativos.push("OS: " + busca);
 if(crit) ativos.push("Crit: " + crit);
@@ -753,9 +712,8 @@ if(sgm) ativos.push("SGM: " + sgm);
 if(alim) ativos.push("Alim: " + alim);
 
 document.getElementById("filtrosAtivos").innerText =
-ativos.length ? "Filtros: " + ativos.join(" | ") : "";
+  ativos.length ? "Filtros: " + ativos.join(" | ") : "";
 }
-
   window.onload = () => {
 
   if(localStorage.getItem("auth") === "true"){
