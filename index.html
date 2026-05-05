@@ -29,6 +29,7 @@ body { margin:0; font-family:Arial; background:#0b1220; color:white; }
   display:flex;
   justify-content:center;
   align-items:center;
+  background:linear-gradient(135deg,#020617,#0f172a);
 }
 .card {
   background:#1e293b;
@@ -124,11 +125,40 @@ button { background:#22c55e; cursor:pointer; }
 <!-- LOGIN -->
 
 <div id="login">
-  <div class="card">
-    <h3>🔐 Login</h3>
-    <input id="user" placeholder="Usuário">
-    <input id="senha" type="password" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
+  <div style="
+    background:#020617;
+    padding:40px;
+    border-radius:16px;
+    width:320px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.4);
+  ">
+
+    <h2 style="margin-bottom:20px;">🚀 Despacho LL</h2>
+
+    <div style="font-size:12px; color:#94a3b8;">Usuário</div>
+    <input id="user" placeholder="Digite seu usuário">
+
+    <div style="font-size:12px; color:#94a3b8; margin-top:10px;">Senha</div>
+    <input id="senha" type="password" placeholder="Digite sua senha">
+
+    <button onclick="login()" style="
+      margin-top:20px;
+      background:#22c55e;
+      font-weight:bold;
+      font-size:14px;
+    ">
+      Entrar
+    </button>
+
+    <div style="
+      margin-top:15px;
+      font-size:11px;
+      color:#64748b;
+      text-align:center;
+    ">
+      Sistema interno • Linha Viva
+    </div>
+
   </div>
 </div>
 
@@ -274,11 +304,18 @@ const paleta = ["#3b82f6","#22c55e","#facc15","#ef4444","#a855f7","#06b6d4","#f9
 /* LOGIN */
 function login(){
   if(user.value==="admin" && senha.value==="123456"){
+
+    localStorage.setItem("auth","true");
+
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="block";
+
     init();
     carregar();
-  } else alert("Login inválido");
+
+  } else {
+    alert("Login inválido");
+  }
 }
 
 function logout(){
@@ -325,6 +362,10 @@ function toggleLegenda(){
   } else {
     alert("Login inválido");
   }
+}
+  function limparSelecao(){
+  selecionadosClick = [];
+  document.getElementById("listaOS").innerText = "";
 }
 
 /* MAP */
@@ -678,6 +719,23 @@ document.getElementById("filtrosAtivos").innerText =
   }
 
 };
+ document.addEventListener("keydown", (e) => {
+
+  const appVisivel = document.getElementById("app").style.display !== "none";
+  const digitando = ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName);
+
+  if (e.key === "Escape" && appVisivel && !digitando) {
+    limparSelecao();
+  }
+
+});
+  document.addEventListener("keydown", e=>{
+  const loginVisible = document.getElementById("login").style.display !== "none";
+
+  if(e.key === "Enter" && loginVisible){
+    login();
+  }
+});
 </script>
 
 </body>
