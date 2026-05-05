@@ -609,12 +609,18 @@ async function carregar(){
 
   dados.forEach(p=>{
     if(p.tipo) setTipo.add(p.tipo);
-    if(p.soma) setsoma.add(p.soma);
+    if(p.soma){
+  const valor = p.soma.trim().toUpperCase();
+  setsoma.add(valor);
+  p.soma = valor; // 🔥 já corrige para o filtro funcionar
+};
     if(p.alimentador) setAlim.add(p.alimentador);
   });
 
   preencher("tipo",setTipo);
-  preencher("soma",setsoma);
+  if(document.getElementById("soma").options.length <= 1){
+  preencher("soma", setsoma);
+};
   preencher("alim",setAlim);
 
   coresTipo = {};
