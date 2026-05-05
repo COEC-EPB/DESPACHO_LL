@@ -618,10 +618,13 @@ async function carregar(){
   });
 
   preencher("tipo",setTipo);
-  if(document.getElementById("soma").options.length <= 1){
-  preencher("soma", setsoma);
-};
-  preencher("alim",setAlim);
+  const somaSelecionado = document.getElementById("soma").value;
+
+preencher("soma", setsoma);
+
+// 🔥 mantém seleção
+document.getElementById("soma").value = somaSelecionado;
+    preencher("alim",setAlim);
 
   coresTipo = {};
   cluster.clearLayers();
