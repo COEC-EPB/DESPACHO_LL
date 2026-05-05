@@ -558,47 +558,28 @@ function atualizarLegenda(){
 
 /* UPLOAD */
 function enviar(){
-
   const file = document.getElementById("file").files[0];
   if(!file) return alert("Selecione arquivo");
 
   const reader = new FileReader();
 
-  reader.onload = e => {
+  reader.onload = e=>{
+    const wb = XLSX.read(new Uint8Array(e.target.result),{type:"array"});
+    const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]);
 
-    const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-
-    const json = XLSX.utils.sheet_to_json(
-      wb.Sheets[wb.SheetNames[0]],
-      { defval: "" }
-    );
-
-    // 🔥 cria xhr corretamente
     const xhr = new XMLHttpRequest();
-
     xhr.open("POST","https://despacholinhaviva.pedro-fillype.workers.dev/upload");
-
-    xhr.setRequestHeader("Content-Type","application/json");
 
     xhr.upload.onprogress = e=>{
       if(e.lengthComputable){
         const p = Math.round((e.loaded/e.total)*100);
-        bar.style.width = p + "%";
-        bar.innerText = p + "%";
+        bar.style.width=p+"%";
+        bar.innerText=p+"%";
       }
     };
 
-    xhr.onload = () => {
-      status.innerText = "Upload OK";
-      carregar();
-    };
-
-    xhr.onerror = () => {
-      status.innerText = "Erro no upload";
-    };
-
-    // 🔥 envia JSON correto
-    xhr.send(JSON.stringify(json));
+    xhr.onload=()=>{ status.innerText="Upload OK"; carregar(); };
+    xhr.send(csv);
   };
 
   reader.readAsArrayBuffer(file);
@@ -637,13 +618,10 @@ async function carregar(){
   });
 
   preencher("tipo",setTipo);
-  const somaSelecionado = document.getElementById("soma").value;
-
-preencher("soma", setsoma);
-
-// 🔥 mantém seleção
-document.getElementById("soma").value = somaSelecionado;
-    preencher("alim",setAlim);
+  if(document.getElementById("soma").options.length <= 1){
+  preencher("soma", setsoma);
+};
+  preencher("alim",setAlim);
 
   coresTipo = {};
   cluster.clearLayers();
