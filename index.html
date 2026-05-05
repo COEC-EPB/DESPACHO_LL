@@ -180,10 +180,18 @@ button { background:#22c55e; cursor:pointer; }
 <h3>📋 OS Selecionadas</h3>
 <div id="listaOS" style="max-height:200px; overflow:auto; font-size:12px;"></div>
 
+<button onclick="limparFiltros()" style="background:#64748b;">
+  🧹 Limpar filtros
+</button>
 
+<div id="filtrosAtivos" style="margin-top:10px; font-size:12px; color:#22c55e;"></div>
+  
 <div id="contador"></div>
 
 <button class="logout" onclick="logout()">Sair</button>
+  <div style="font-size:11px; color:#94a3b8; margin-top:5px;">
+  💡 Clique para copiar SGM • Segure CTRL para múltiplos
+</div>
 
 </div>
 <div id="map"></div>
@@ -194,6 +202,7 @@ button { background:#22c55e; cursor:pointer; }
 
 
 <script>
+let selecionadosClick = [];
 let drawnItems; // 🔥 NOVO
 let map, cluster;
 let coresTipo = {};
@@ -251,6 +260,16 @@ function toggleMenu(){
   document.getElementById("sidebar").classList.toggle("hidden");
 }
 
+  function limparFiltros(){
+  document.getElementById("busca").value="";
+  document.getElementById("crit").value="";
+  document.getElementById("tipo").value="";
+  document.getElementById("soma").value="";
+  document.getElementById("sgm").value="";
+  document.getElementById("alim").value="";
+
+  carregar();
+}
 /* LEGENDA */
 function toggleLegenda(){
   if(legendaVisivel){
@@ -558,25 +577,27 @@ marker.bindPopup(`
   <b>OS SGM:</b> ${p.sgm}<br>
 `);
   // ✅ AQUI É O LUGAR CERTO
-  marker.on('click', function () {
+marker.on('click', function (e) {
 
-    const clickedLat = this.getLatLng().lat;
-    const clickedLon = this.getLatLng().lng;
+  const sgm = this.options.dados.sgm;
 
-    const iguais = [];
+  // CTRL pressionado → acumula
+  if(e.originalEvent.ctrlKey){
+    if(!selecionadosClick.includes(sgm)){
+      selecionadosClick.push(sgm);
+    }
+  } else {
+    // clique normal → reinicia seleção
+    selecionadosClick = [sgm];
+  }
 
-    cluster.eachLayer(m => {
-      const lat = m.getLatLng().lat;
-      const lon = m.getLatLng().lng;
+  const texto = selecionadosClick.join(", ");
 
-      if(Math.abs(lat - clickedLat) < 0.00001 &&
-         Math.abs(lon - clickedLon) < 0.00001){
-        iguais.push(m);
-      }
-    });
+  document.getElementById("listaOS").innerText = texto;
 
-    mostrarListaOS(iguais);
-  });
+  navigator.clipboard.writeText(texto);
+
+});
 
   cluster.addLayer(marker);
 });
@@ -588,6 +609,17 @@ marker.bindPopup(`
   if(legendaVisivel){
     atualizarLegenda();
   }
+  let ativos = [];
+
+if(busca) ativos.push("OS: " + busca);
+if(crit) ativos.push("Crit: " + crit);
+if(tipo) ativos.push("Tipo: " + tipo);
+if(soma) ativos.push("Soma: " + soma);
+if(sgm) ativos.push("SGM: " + sgm);
+if(alim) ativos.push("Alim: " + alim);
+
+document.getElementById("filtrosAtivos").innerText =
+  ativos.length ? "Filtros: " + ativos.join(" | ") : "";
 }
 </script>
 
