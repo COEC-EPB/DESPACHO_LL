@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
 
-<!-- JS (ORDEM IMPORTA MUITO) -->
+
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
@@ -19,6 +19,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<script src="https://unpkg.com/@tmcw/togeojson"></script>
+<script src="https://unpkg.com/leaflet-filelayer@1.2.0/leaflet.filelayer.js"></script>
 
 <style>
 body { margin:0; font-family:Arial; background:#0b1220; color:white; }
@@ -205,6 +208,12 @@ button { background:#22c55e; cursor:pointer; }
 
 </div>
 
+  <input type="file" id="kmlFile" accept=".kml,.kmz">
+
+<button onclick="carregarKML()">
+  🌎 Carregar KML
+</button>
+
 <hr>
 
 <h3>📊 Filtros</h3>
@@ -264,6 +273,7 @@ let selecionadosClick = [];
 let drawnItems; // 🔥 NOVO
 let map, cluster;
 let coresTipo = {};
+let layersKML = {};
 let legendaControl = null;
 let legendaVisivel = false;
 
@@ -350,6 +360,70 @@ function toggleLegenda(){
   function limparSelecao(){
   selecionadosClick = [];
   document.getElementById("listaOS").innerText = "";
+}
+
+  async function carregarKML(){
+
+  const file = document.getElementById("kmlFile").files[0];
+
+  if(!file){
+    return alert("Selecione um KML");
+  }
+
+  const texto = await file.text();
+
+  const parser = new DOMParser();
+
+  const xml = parser.parseFromString(
+    texto,
+    "text/xml"
+  );
+
+  const geojson = toGeoJSON.kml(xml);
+
+  const layer = L.geoJSON(geojson, {
+
+    style: feature => {
+
+      return {
+        color: "#22c55e",
+        weight: 2
+      };
+
+    },
+
+    pointToLayer: (feature, latlng) => {
+
+      return L.circleMarker(latlng, {
+        radius: 5,
+        fillColor: "#facc15",
+        color: "#fff",
+        weight: 1,
+        fillOpacity: 1
+      });
+
+    },
+
+    onEachFeature: (feature, layer) => {
+
+      let props = feature.properties || {};
+
+      let html = "";
+
+      Object.entries(props).forEach(([k,v])=>{
+        html += `<b>${k}:</b> ${v}<br>`;
+      });
+
+      layer.bindPopup(html);
+
+    }
+
+  });
+
+  layer.addTo(map);
+
+  layersKML[file.name] = layer;
+
 }
 
 /* MAP */
