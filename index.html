@@ -227,7 +227,7 @@ button { background:#22c55e; cursor:pointer; }
 <select id="soma" onchange="carregar()"></select>
 
 <div class="label">SGM</div>
-<select id="sgm" onchange="carregar()"></select>
+<input id="sgm" placeholder="Buscar SGM..." oninput="carregar()">
 
 <div class="label">Alimentador</div>
 <select id="alim" onchange="carregar()"></select>
@@ -579,15 +579,35 @@ function preencher(id,set){
 /* CARREGAR */
 async function carregar(){
 
-  const res = await fetch("https://despacholinhaviva.pedro-fillype.workers.dev/api/dados");
-  let dados = await res.json();
+  let dados = [];
+
+try {
+
+  const res = await fetch(
+    "https://despacholinhaviva.pedro-fillype.workers.dev/api/dados"
+  );
+
+  dados = await res.json();
+
+} catch(err){
+
+  console.error(err);
+  alert("Erro ao carregar dados");
+
+  return;
+}
+  
 
   const busca = document.getElementById("busca").value.toUpperCase();
   const crit = document.getElementById("crit").value;
   const tipo = document.getElementById("tipo").value;
   const soma = document.getElementById("soma").value;
   const alim = document.getElementById("alim").value;
-  const sgm = document.getElementById("sgm").value;
+  const sgm = document
+  .getElementById("sgm")
+  .value
+  .trim()
+  .toUpperCase();
 
   const setTipo = new Set();
   const setSoma = new Set();
@@ -640,7 +660,10 @@ async function carregar(){
     if(tipo && p.tipo!==tipo) return false;
     if(soma && p.soma!==soma) return false;
     if(alim && p.alimentador!==alim) return false;
-    if(sgm && p.sgm!==sgm) return false;
+    if(
+      sgm &&
+      !p.sgm?.toUpperCase().includes(sgm)
+    ) return false;
     return true;
   });
 
