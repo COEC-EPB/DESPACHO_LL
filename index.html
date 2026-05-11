@@ -549,7 +549,12 @@ function enviar(){
 
   reader.onload = e=>{
     const wb = XLSX.read(new Uint8Array(e.target.result),{type:"array"});
-    const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]);
+    const json = XLSX.utils.sheet_to_json(
+      wb.Sheets[wb.SheetNames[0]],
+      {
+        defval: ""
+      }
+    );
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST","https://despacholinhaviva.pedro-fillype.workers.dev/upload");
@@ -563,7 +568,12 @@ function enviar(){
     };
 
     xhr.onload=()=>{ status.innerText="Upload OK"; carregar(); };
-    xhr.send(csv);
+    xhr.setRequestHeader(
+  "Content-Type",
+  "application/json"
+);
+
+xhr.send(JSON.stringify(json));
   };
 
   reader.readAsArrayBuffer(file);
