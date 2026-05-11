@@ -214,6 +214,10 @@ button { background:#22c55e; cursor:pointer; }
   🌎 Carregar KML
 </button>
 
+  <button onclick="mostrarKML()">
+  👁 Mostrar KML
+</button>
+
 <hr>
 
 <h3>📊 Filtros</h3>
@@ -418,11 +422,18 @@ function toggleLegenda(){
 
     }
 
-  });
-
-  layer.addTo(map);
+  }); 
 
   layersKML[file.name] = layer;
+
+alert("KML processado");
+
+}
+  function mostrarKML(){
+
+  Object.values(layersKML).forEach(layer=>{
+    map.addLayer(layer);
+  });
 
 }
 
