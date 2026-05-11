@@ -605,23 +605,45 @@ async function carregar(){
   const alim = document.getElementById("alim").value;
   const sgm = document.getElementById("sgm").value;
 
-  const setTipo=new Set(), setsoma=new Set(), setAlim=new Set();
+  const setTipo = new Set();
+  const setSoma = new Set();
+  const setAlim = new Set();
+  const setSGM = new Set();
 
-  dados.forEach(p=>{
-    if(p.tipo) setTipo.add(p.tipo);
-    if(p.soma){
-  const valor = p.soma.trim().toUpperCase();
-  setsoma.add(valor);
-  p.soma = valor; // 🔥 já corrige para o filtro funcionar
-};
-    if(p.alimentador) setAlim.add(p.alimentador);
-  });
+  dados.forEach(p => {
 
-  preencher("tipo",setTipo);
-  if(document.getElementById("soma").options.length <= 1){
-  preencher("soma", setsoma);
-};
-  preencher("alim",setAlim);
+  // NORMALIZA CAMPOS
+  p.tipo = (p.tipo || "").trim();
+  p.soma = (p.soma || "").trim().toUpperCase();
+  p.sgm = (p.sgm || "").trim();
+  p.alimentador = (p.alimentador || "").trim();
+
+  // TIPO
+  if(p.tipo){
+    setTipo.add(p.tipo);
+  }
+
+  // SOMA
+  if(p.soma){
+    setSoma.add(p.soma);
+  }
+
+  // SGM
+  if(p.sgm){
+    setSGM.add(p.sgm);
+  }
+
+  // ALIMENTADOR
+  if(p.alimentador){
+    setAlim.add(p.alimentador);
+  }
+
+});
+
+  preencher("tipo", setTipo);
+  preencher("soma", setSoma);
+  preencher("sgm", setSGM);
+  preencher("alim", setAlim);
 
   coresTipo = {};
   cluster.clearLayers();
