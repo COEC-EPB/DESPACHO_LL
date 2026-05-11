@@ -302,22 +302,6 @@ const paleta = ["#3b82f6","#22c55e","#facc15","#ef4444","#a855f7","#06b6d4","#f9
 }
 
 /* LOGIN */
-function login(){
-  if(user.value==="admin" && senha.value==="123456"){
-
-    localStorage.setItem("auth","true");
-
-    document.getElementById("login").style.display="none";
-    document.getElementById("app").style.display="block";
-
-    init();
-    carregar();
-
-  } else {
-    alert("Login inválido");
-  }
-}
-
 function logout(){
   localStorage.removeItem("auth");
   location.reload();
@@ -668,6 +652,8 @@ async function carregar(){
   const lon = parseFloat(p.lon);
 
   if(isNaN(lat) || isNaN(lon)) return;
+
+  bounds.push([lat, lon]);
 
   const marker = L.marker([lat,lon], {
   icon: L.divIcon({
