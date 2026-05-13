@@ -243,7 +243,15 @@ button { background:#22c55e; cursor:pointer; }
 <input id="sgm" placeholder="Buscar SGM..." oninput="carregar()">
 
 <div class="label">Alimentador</div>
-<select id="alim" onchange="carregar()"></select>
+<select
+  id="alim"
+  multiple
+  size="8"
+  onchange="
+    carregar();
+    mostrarKML();
+  "
+></select>
 
   <hr>
 <h3>📋 OS Selecionadas</h3>
@@ -278,6 +286,8 @@ let drawnItems; // 🔥 NOVO
 let map, cluster;
 let coresTipo = {};
 let layersKML = {};
+let geojsonKML = null;
+let layerKMLAtual = null;
 let legendaControl = null;
 let legendaVisivel = false;
 
@@ -366,7 +376,7 @@ function toggleLegenda(){
   document.getElementById("listaOS").innerText = "";
 }
 
-  async function carregarKML(){
+ async function carregarKML(){
 
   const file = document.getElementById("kmlFile").files[0];
 
@@ -383,9 +393,56 @@ function toggleLegenda(){
     "text/xml"
   );
 
-  const geojson = toGeoJSON.kml(xml);
+  status.innerText = "Convertendo KML...";
 
-  const layer = L.geoJSON(geojson, {
+  geojsonKML = toGeoJSON.kml(xml);
+
+  status.innerText =
+    "KML carregado: " +
+    geojsonKML.features.length +
+    " elementos";
+
+}
+  function mostrarKML(){
+
+  if(!geojsonKML){
+    return alert("Carregue um KML primeiro");
+  }
+
+  // remove layer antiga
+  if(layerKMLAtual){
+    map.removeLayer(layerKMLAtual);
+  }
+
+  const alim = [
+  ...document.getElementById("alim").selectedOptions
+].map(o => o.value.toUpperCase());
+
+  // 🔥 FILTRO
+  const filtrado = {
+    ...geojsonKML,
+    features: geojsonKML.features.filter(f => {
+
+      if(!alim.length) return false;
+
+      const props = f.properties || {};
+
+      const texto = JSON.stringify(props)
+        .toUpperCase();
+
+      return alim.some(a =>
+    texto.includes(a)
+  );
+
+    })
+  };
+
+  status.innerText =
+    "Renderizando " +
+    filtrado.features.length +
+    " elementos";
+
+  layerKMLAtual = L.geoJSON(filtrado, {
 
     style: feature => {
 
@@ -399,7 +456,7 @@ function toggleLegenda(){
     pointToLayer: (feature, latlng) => {
 
       return L.circleMarker(latlng, {
-        radius: 5,
+        radius: 4,
         fillColor: "#facc15",
         color: "#fff",
         weight: 1,
@@ -422,18 +479,9 @@ function toggleLegenda(){
 
     }
 
-  }); 
-
-  layersKML[file.name] = layer;
-
-alert("KML processado");
-
-}
-  function mostrarKML(){
-
-  Object.values(layersKML).forEach(layer=>{
-    map.addLayer(layer);
   });
+
+  layerKMLAtual.addTo(map);
 
 }
 
@@ -697,7 +745,9 @@ try {
   const crit = document.getElementById("crit").value;
   const tipo = document.getElementById("tipo").value;
   const soma = document.getElementById("soma").value;
-  const alim = document.getElementById("alim").value;
+  const alim = [
+  ...document.getElementById("alim").selectedOptions
+].map(o => o.value);
   const sgm = document
   .getElementById("sgm")
   .value
@@ -754,7 +804,10 @@ try {
     if(crit && !p.criticidade?.includes(crit)) return false;
     if(tipo && p.tipo!==tipo) return false;
     if(soma && p.soma!==soma) return false;
-    if(alim && p.alimentador!==alim) return false;
+    if(
+  alim.length &&
+  !alim.includes(p.alimentador)
+) return false;
     if(
       sgm &&
       !p.sgm?.toUpperCase().includes(sgm)
