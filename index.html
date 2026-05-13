@@ -22,6 +22,10 @@
 
 <script src="https://unpkg.com/@tmcw/togeojson"></script>
 <script src="https://unpkg.com/leaflet-filelayer@1.2.0/leaflet.filelayer.js"></script>
+<script src="https://unpkg.com/leaflet.control.layers.tree/L.Control.Layers.Tree.min.js"></script>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet.control.layers.tree/L.Control.Layers.Tree.css"/>
 
 <style>
 body { margin:0; font-family:Arial; background:#0b1220; color:white; }
@@ -287,6 +291,7 @@ let map, cluster;
 let coresTipo = {};
 let layersKML = {};
 let controleCamadas = null;
+let arvoreKML = {};
 let geojsonKML = null;
 let layerKMLAtual = null;
 let legendaControl = null;
@@ -477,6 +482,35 @@ function toggleLegenda(){
     Object.keys(layersKML).length +
     " camadas carregadas"
   );
+
+}
+
+  function adicionarNaArvore(caminho, layer){
+
+  let atual = arvoreKML;
+
+  caminho.forEach((parte, index)=>{
+
+    if(!atual[parte]){
+      atual[parte] = {
+        label: parte,
+        children: []
+      };
+    }
+
+    // último nível
+    if(index === caminho.length - 1){
+
+      atual[parte].children.push({
+        label: parte,
+        layer: layer
+      });
+
+    }
+
+    atual = atual[parte];
+
+  });
 
 }
   function mostrarKML(){
