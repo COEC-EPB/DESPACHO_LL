@@ -175,6 +175,23 @@ button { background:#22c55e; cursor:pointer; }
 .camada-item:hover{
   background:#334155;
 }
+  #painelCamadas::-webkit-scrollbar{
+  width:8px;
+}
+
+#painelCamadas::-webkit-scrollbar-thumb{
+  background:#334155;
+  border-radius:999px;
+}
+
+#painelCamadas .camada-item input{
+  width:auto;
+  margin:0;
+}
+
+#painelCamadas .camada-item{
+  justify-content:space-between;
+}
 </style>
 
 </head>
@@ -313,12 +330,6 @@ button { background:#22c55e; cursor:pointer; }
 ></select>
   <h3>🌎 Componentes</h3>
 
-<div id="camadas"></div>
-
-  <div id="tituloCamadas">
-    🌎 Componentes
-  </div>
-
   <hr>
 <h3>📋 OS Selecionadas</h3>
 <div id="listaOS" style="max-height:200px; overflow:auto; font-size:12px;"></div>
@@ -340,6 +351,16 @@ button { background:#22c55e; cursor:pointer; }
 </button>
 </div>
 <div id="map"></div>
+
+  <div id="painelCamadas">
+
+  <div id="tituloCamadas">
+    🌎 Componentes
+  </div>
+
+  <div id="camadas"></div>
+
+</div>
 
 </div>
 </div>
@@ -426,12 +447,9 @@ function toggleMenu(){
   document.getElementById("soma").selectedIndex = 0;
 
   // multi alimentador
-  const alim =
-    document.getElementById("alim");
 
-  [...alim.options].forEach(o=>{
-    o.selected = false;
-  });
+
+   selectAlim.clear();
 
   // remove componentes
   Object.values(layersComponentes)
@@ -523,11 +541,38 @@ async function carregarKML(){
         name:
           props.name || "",
 
-        tipo:
-          props.tipo ||
-          props.Type ||
-          props.styleUrl ||
-          "Componente",
+        tipo: (() => {
+
+  const texto = JSON.stringify(props)
+    .toUpperCase();
+
+  if(texto.includes("CHAVE")){
+    return "Chave";
+  }
+
+  if(texto.includes("RELIG")){
+    return "Religador";
+  }
+
+  if(texto.includes("TRECHO")){
+    return "Trecho";
+  }
+
+  if(texto.includes("TRANSF")){
+    return "Transformador";
+  }
+
+  if(texto.includes("REGUL")){
+    return "Regulador";
+  }
+
+  if(texto.includes("CAPAC")){
+    return "Capacitor";
+  }
+
+  return "Componente";
+
+})(),
 
         alimentador:
           props.alimentador ||
@@ -579,7 +624,7 @@ async function carregarKML(){
   );
   document.getElementById("btnCamadas")
   .style.display = "block";
-
+  await carregarComponentes();
 }
   async function carregarComponentes(){
 
@@ -593,12 +638,15 @@ async function carregarKML(){
 
   layersComponentes = {};
 
-  const tipos = [
-    "Chave",
-    "Religador",
-    "Trecho",
-    "Transformador"
-  ];
+  const res = await fetch(
+  "https://despacholinhaviva.pedro-fillype.workers.dev/api/tipos-componentes"
+);
+
+const json = await res.json();
+
+const tipos = json.dados.map(
+  t => t.tipo
+);
 
   const div =
     document.getElementById("camadas");
@@ -611,7 +659,7 @@ async function carregarKML(){
       "camada_" + tipo;
 
     div.innerHTML += `
-      <label class="camada-item""
+      <label class="camada-item"
         display:flex;
         align-items:center;
         gap:8px;
@@ -621,7 +669,7 @@ async function carregarKML(){
         <input
           type="checkbox"
           id="${id}"
-          onchange="toggleComponente('${tipo}')"
+          data-tipo="${tipo}"
         >
 
         ${tipo}
@@ -631,10 +679,17 @@ async function carregarKML(){
   }
 
 }
-  async function toggleComponente(tipo){
+ async function toggleComponente(tipo){
 
-  // remove layer
-  if(layersComponentes[tipo]){
+  const checkbox =
+    document.querySelector(
+      `[data-tipo="${tipo}"]`
+    );
+
+  // remove
+  if(
+    layersComponentes[tipo]
+  ){
 
     map.removeLayer(
       layersComponentes[tipo]
@@ -643,11 +698,16 @@ async function carregarKML(){
     delete layersComponentes[tipo];
 
     return;
+
   }
+
+  // loading
+  checkbox.disabled = true;
 
   const alim = selectAlim.items;
 
-  const params = new URLSearchParams();
+  const params =
+    new URLSearchParams();
 
   params.append("tipo", tipo);
 
@@ -655,68 +715,119 @@ async function carregarKML(){
     params.append("alim", a);
   });
 
-  const res = await fetch(
-    "https://despacholinhaviva.pedro-fillype.workers.dev/api/componentes?" +
-    params.toString()
-  );
+  try {
 
-  const json = await res.json();
+    const res = await fetch(
+      "https://despacholinhaviva.pedro-fillype.workers.dev/api/componentes?" +
+      params.toString()
+    );
 
-  const geojson = {
+    const json = await res.json();
 
-    type:"FeatureCollection",
+    const geojson = {
 
-    features: json.dados.map(c => ({
+      type:"FeatureCollection",
 
-      type:"Feature",
+      features: json.dados.map(c => ({
 
-      properties:{
-        nome:c.nome,
-        tipo:c.tipo
-      },
+        type:"Feature",
 
-      geometry: JSON.parse(c.geojson)
+        properties:{
+          nome:c.nome,
+          tipo:c.tipo
+        },
 
-    }))
+        geometry: JSON.parse(c.geojson)
 
-  };
+      }))
 
-  const layer = L.geoJSON(geojson, {
+    };
 
-    style:{
-      color:"#22c55e",
-      weight:2
-    },
+    const layer = L.geoJSON(
+      geojson,
+      {
 
-    pointToLayer:(f,latlng)=>{
+        style: feature => {
 
-      return L.circleMarker(latlng,{
-        radius:4,
-        fillColor:"#3b82f6",
-        color:"#fff",
-        weight:1,
-        fillOpacity:1
-      });
+          // linhas
+          if(
+            feature.geometry.type
+              .includes("Line")
+          ){
 
-    },
+            return {
+              color:"#22c55e",
+              weight:2
+            };
 
-    onEachFeature:(feature,layer)=>{
+          }
 
-      layer.bindPopup(`
-        <b>Componente:</b>
-        ${feature.properties.nome}<br>
+        },
 
-        <b>Tipo:</b>
-        ${feature.properties.tipo}
-      `);
+        pointToLayer:
+          (feature,latlng)=>{
 
-    }
+          let cor = "#3b82f6";
 
-  });
+          if(tipo==="Chave"){
+            cor="#facc15";
+          }
 
-  layer.addTo(map);
+          if(tipo==="Religador"){
+            cor="#ef4444";
+          }
 
-  layersComponentes[tipo] = layer;
+          if(tipo==="Transformador"){
+            cor="#22c55e";
+          }
+
+          return L.circleMarker(
+            latlng,
+            {
+              radius:5,
+              fillColor:cor,
+              color:"#fff",
+              weight:1,
+              fillOpacity:1
+            }
+          );
+
+        },
+
+        onEachFeature:
+          (feature,layer)=>{
+
+          layer.bindPopup(`
+            <b>Componente:</b>
+            ${feature.properties.nome}<br>
+
+            <b>Tipo:</b>
+            ${feature.properties.tipo}
+          `);
+
+        }
+
+      }
+    );
+
+    layer.addTo(map);
+
+    layersComponentes[tipo] =
+      layer;
+
+  } catch(err){
+
+    console.error(err);
+
+    alert(
+      "Erro ao carregar " + tipo
+    );
+
+  } finally {
+
+    checkbox.disabled = false;
+
+  }
 
 }
 
