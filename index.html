@@ -218,10 +218,6 @@ button { background:#22c55e; cursor:pointer; }
   🌎 Carregar KML
 </button>
 
-  <button onclick="mostrarKML()">
-  👁 Mostrar KML
-</button>
-
 <hr>
 
 <h3>📊 Filtros</h3>
@@ -860,190 +856,276 @@ function preencher(id,set){
 /* CARREGAR */
 async function carregar(){
 
-  let dados = [];
+// =========================
+// FILTROS
+// =========================
 
-try {
+const busca = document
+  .getElementById("busca")
+  .value
+  .trim()
+  .toUpperCase();
 
-  const params = new URLSearchParams();
+const crit =
+  document.getElementById("crit").value;
 
-if(busca) params.append("busca", busca);
-if(crit) params.append("crit", crit);
-if(tipo) params.append("tipo", tipo);
-if(soma) params.append("soma", soma);
-if(sgm) params.append("sgm", sgm);
+const tipo =
+  document.getElementById("tipo").value;
 
-alim.forEach(a=>{
-  params.append("alim", a);
-});
+const soma =
+  document.getElementById("soma").value;
 
-const res = await fetch(
-  "https://despacholinhaviva.pedro-fillype.workers.dev/api/dados?" +
-  params.toString()
-);
-
-  dados = await res.json();
-
-} catch(err){
-
-  console.error(err);
-  alert("Erro ao carregar dados");
-
-  return;
-}
-  
-
-  const busca = document.getElementById("busca").value.toUpperCase();
-  const crit = document.getElementById("crit").value;
-  const tipo = document.getElementById("tipo").value;
-  const soma = document.getElementById("soma").value;
-  const alim = [
-  ...document.getElementById("alim").selectedOptions
-].map(o => o.value);
-  const sgm = document
+const sgm = document
   .getElementById("sgm")
   .value
   .trim()
   .toUpperCase();
 
-  const setTipo = new Set();
-  const setSoma = new Set();
-  const setAlim = new Set();
-  const setSGM = new Set();
+const alim = [
+  ...document.getElementById("alim")
+    .selectedOptions
+].map(o => o.value);
 
-  dados.forEach(p => {
+// =========================
+// PARAMS
+// =========================
 
-  // NORMALIZA CAMPOS
-  p.tipo = (p.tipo || "").trim();
-  p.soma = (p.soma || "").trim().toUpperCase();
-  p.sgm = (p.sgm || "").trim();
-  p.alimentador = (p.alimentador || "").trim();
+const params = new URLSearchParams();
 
-  // TIPO
+if(busca){
+  params.append("busca", busca);
+}
+
+if(crit){
+  params.append("crit", crit);
+}
+
+if(tipo){
+  params.append("tipo", tipo);
+}
+
+if(soma){
+  params.append("soma", soma);
+}
+
+if(sgm){
+  params.append("sgm", sgm);
+}
+
+alim.forEach(a=>{
+  params.append("alim", a);
+});
+
+// =========================
+// FETCH
+// =========================
+
+let dados = [];
+
+try {
+
+  const res = await fetch(
+    "https://despacholinhaviva.pedro-fillype.workers.dev/api/dados?" +
+    params.toString()
+  );
+
+  const json = await res.json();
+
+  dados = json.dados || [];
+
+} catch(err){
+
+  console.error(err);
+
+  alert("Erro ao carregar dados");
+
+  return;
+
+}
+
+// =========================
+// FILTROS DINÂMICOS
+// =========================
+
+const setTipo = new Set();
+const setSoma = new Set();
+const setAlim = new Set();
+const setSGM = new Set();
+
+dados.forEach(p => {
+
+  p.tipo =
+    (p.tipo || "").trim();
+
+  p.soma =
+    (p.soma || "")
+    .trim()
+    .toUpperCase();
+
+  p.sgm =
+    (p.sgm || "").trim();
+
+  p.alimentador =
+    (p.alimentador || "").trim();
+
   if(p.tipo){
     setTipo.add(p.tipo);
   }
 
-  // SOMA
   if(p.soma){
     setSoma.add(p.soma);
   }
 
-  // SGM
   if(p.sgm){
     setSGM.add(p.sgm);
   }
 
-  // ALIMENTADOR
   if(p.alimentador){
     setAlim.add(p.alimentador);
   }
 
 });
 
-  preencher("tipo", setTipo);
-  preencher("soma", setSoma);
-  preencher("sgm", setSGM);
-  preencher("alim", setAlim);
+preencher("tipo", setTipo);
+preencher("soma", setSoma);
+preencher("alim", setAlim);
 
-  coresTipo = {};
-  cluster.clearLayers();
+// =========================
+// MAPA
+// =========================
 
-  let bounds = [];
+coresTipo = {};
 
-  dados = dados.filter(p=>{
-    if(busca && !p.os?.toUpperCase().includes(busca)) return false;
-    if(crit && !p.criticidade?.includes(crit)) return false;
-    if(tipo && p.tipo!==tipo) return false;
-    if(soma && p.soma!==soma) return false;
-    if(
-  alim.length &&
-  !alim.includes(p.alimentador)
-) return false;
-    if(
-      sgm &&
-      !p.sgm?.toUpperCase().includes(sgm)
-    ) return false;
-    return true;
-  });
+cluster.clearLayers();
 
-  contador.innerText="Total: "+dados.length;
+let bounds = [];
 
-  dados.forEach(p => {
+contador.innerText =
+  "Total: " + dados.length;
+
+dados.forEach(p => {
 
   const lat = parseFloat(p.lat);
   const lon = parseFloat(p.lon);
 
-  if(isNaN(lat) || isNaN(lon)) return;
+  if(isNaN(lat) || isNaN(lon)){
+    return;
+  }
 
   bounds.push([lat, lon]);
 
   const marker = L.marker([lat,lon], {
-  icon: L.divIcon({
-    html:`<div style="
-      width:14px;
-      height:14px;
-      background:${corTipo(p.tipo)};
-      border-radius:50%;
-      border:3px solid white;
-    "></div>`
-  }),
-  dados: p
-});
 
-marker.bindPopup(`
-  <b>OS:</b> ${p.os}<br>
-  <b>Status:</b> ${p.status}<br>
-  <b>Tipo:</b> ${p.tipo}<br>
-  <b>Alimentador:</b> ${p.alimentador}<br>
-  <b>Criticidade:</b> ${p.criticidade}<br>
-  <b>Tag:</b> ${p.tag}<br>
-  <b>OS SGM:</b> ${p.sgm}<br>
-`);
-  // ✅ AQUI É O LUGAR CERTO
-marker.on('click', function (e) {
+    icon: L.divIcon({
 
-  const sgm = this.options.dados.sgm;
+      html: `
+        <div style="
+          width:14px;
+          height:14px;
+          background:${corTipo(p.tipo)};
+          border-radius:50%;
+          border:3px solid white;
+        "></div>
+      `
 
-  // CTRL pressionado → acumula
-  if(e.originalEvent.ctrlKey){
-    if(!selecionadosClick.includes(sgm)){
-      selecionadosClick.push(sgm);
+    }),
+
+    dados: p
+
+  });
+
+  marker.bindPopup(`
+    <b>OS:</b> ${p.os}<br>
+    <b>Status:</b> ${p.status}<br>
+    <b>Tipo:</b> ${p.tipo}<br>
+    <b>Alimentador:</b> ${p.alimentador}<br>
+    <b>Criticidade:</b> ${p.criticidade}<br>
+    <b>Tag:</b> ${p.tag}<br>
+    <b>OS SGM:</b> ${p.sgm}<br>
+  `);
+
+  marker.on('click', function (e) {
+
+    const sgm =
+      this.options.dados.sgm;
+
+    if(e.originalEvent.ctrlKey){
+
+      if(!selecionadosClick.includes(sgm)){
+        selecionadosClick.push(sgm);
+      }
+
+    } else {
+
+      selecionadosClick = [sgm];
+
     }
-  } else {
-    // clique normal → reinicia seleção
-    selecionadosClick = [sgm];
-  }
 
-  const texto = selecionadosClick.join(", ");
+    const texto =
+      selecionadosClick.join(", ");
 
-  document.getElementById("listaOS").innerText = texto;
+    document.getElementById("listaOS")
+      .innerText = texto;
 
-  navigator.clipboard.writeText(texto);
+    navigator.clipboard.writeText(texto);
 
-});
+  });
 
   cluster.addLayer(marker);
+
 });
 
-  if(bounds.length){
-    map.fitBounds(bounds);
-  }
-
-  if(legendaVisivel){
-    atualizarLegenda();
-  }
-  let ativos = [];
-
-if(busca) ativos.push("OS: " + busca);
-if(crit) ativos.push("Crit: " + crit);
-if(tipo) ativos.push("Tipo: " + tipo);
-if(soma) ativos.push("Soma: " + soma);
-if(sgm) ativos.push("SGM: " + sgm);
-if(alim) ativos.push("Alim: " + alim);
-
-document.getElementById("filtrosAtivos").innerText =
-  ativos.length ? "Filtros: " + ativos.join(" | ") : "";
+if(bounds.length){
+  map.fitBounds(bounds);
 }
+
+// =========================
+// LEGENDA
+// =========================
+
+if(legendaVisivel){
+  atualizarLegenda();
+}
+
+// =========================
+// FILTROS ATIVOS
+// =========================
+
+let ativos = [];
+
+if(busca){
+  ativos.push("OS: " + busca);
+}
+
+if(crit){
+  ativos.push("Crit: " + crit);
+}
+
+if(tipo){
+  ativos.push("Tipo: " + tipo);
+}
+
+if(soma){
+  ativos.push("Soma: " + soma);
+}
+
+if(sgm){
+  ativos.push("SGM: " + sgm);
+}
+
+if(alim.length){
+  ativos.push("Alim: " + alim.join(", "));
+}
+
+document.getElementById("filtrosAtivos")
+  .innerText =
+    ativos.length
+    ? "Filtros: " + ativos.join(" | ")
+    : "";
+
+}
+
+
   window.onload = () => {
 
   if(localStorage.getItem("auth") === "true"){
