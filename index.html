@@ -252,10 +252,13 @@ button { background:#22c55e; cursor:pointer; }
   multiple
   size="8"
   onchange="
-    carregar();
-    mostrarKML();
-  "
+  carregar();
+  carregarComponentes();
+"
 ></select>
+  <h3>🌎 Componentes</h3>
+
+<div id="camadas"></div>
 
   <hr>
 <h3>📋 OS Selecionadas</h3>
@@ -289,13 +292,9 @@ let selecionadosClick = [];
 let drawnItems; // 🔥 NOVO
 let map, cluster;
 let coresTipo = {};
-let layersKML = {};
-let controleCamadas = null;
-let arvoreKML = {};
-let geojsonKML = null;
-let layerKMLAtual = null;
 let legendaControl = null;
 let legendaVisivel = false;
+let layersComponentes = {};
 
 const paleta = ["#3b82f6","#22c55e","#facc15","#ef4444","#a855f7","#06b6d4","#f97316"];
 
@@ -384,11 +383,15 @@ function toggleLegenda(){
 
 async function carregarKML(){
 
-  const file = document.getElementById("kmlFile").files[0];
+  const file =
+    document.getElementById("kmlFile").files[0];
 
   if(!file){
     return alert("Selecione um KML");
   }
+
+  status.innerText =
+    "Lendo KML...";
 
   const texto = await file.text();
 
@@ -399,211 +402,226 @@ async function carregarKML(){
     "text/xml"
   );
 
-  // remove antigo
-  if(controleCamadas){
-    map.removeControl(controleCamadas);
+  status.innerText =
+    "Convertendo GeoJSON...";
+
+  const geojson = toGeoJSON.kml(xml);
+
+  // NORMALIZA FEATURES
+  const features = geojson.features.map(f => {
+
+    const props = f.properties || {};
+
+    return {
+
+      type: "Feature",
+
+      properties: {
+
+        name:
+          props.name || "",
+
+        tipo:
+          props.tipo ||
+          props.Type ||
+          props.styleUrl ||
+          "Componente",
+
+        alimentador:
+          props.alimentador ||
+          props.Alimentador ||
+          "",
+
+        camada:
+          props.layer ||
+          props.camada ||
+          "Geral"
+
+      },
+
+      geometry: f.geometry
+
+    };
+
+  });
+
+  status.innerText =
+    "Enviando para o banco...";
+
+  const res = await fetch(
+    "https://despacholinhaviva.pedro-fillype.workers.dev/upload-kml",
+    {
+      method:"POST",
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
+      body: JSON.stringify(features)
+    }
+  );
+
+  const json = await res.json();
+
+  if(!json.ok){
+    throw new Error(json.erro);
   }
 
-  arvoreKML = {};
+  status.innerText =
+    json.total +
+    " componentes salvos";
 
-  const folders = xml.querySelectorAll("Folder");
+  alert(
+    json.total +
+    " componentes importados"
+  );
 
-  folders.forEach(folder => {
+}
+  async function carregarComponentes(){
 
-    const nomes = [];
+  const alim = [
+    ...document.getElementById("alim")
+      .selectedOptions
+  ].map(o => o.value);
 
-    let atual = folder;
-
-    while(atual){
-
-      const nome =
-        atual.querySelector(":scope > name")
-        ?.textContent
-        ?.trim();
-
-      if(nome){
-        nomes.unshift(nome);
-      }
-
-      atual = atual.parentElement?.closest("Folder");
-
-    }
-
-    const geojson = toGeoJSON.kml(folder);
-
-    if(!geojson.features?.length){
-      return;
-    }
-
-    const layer = L.geoJSON(geojson, {
-
-      style:{
-        color:"#22c55e",
-        weight:2
-      },
-
-      pointToLayer:(f,latlng)=>{
-
-        return L.circleMarker(latlng,{
-          radius:5,
-          fillColor:"#3b82f6",
-          color:"#fff",
-          weight:1,
-          fillOpacity:1
-        });
-
-      },
-
-      onEachFeature:(feature,layer)=>{
-
-        const props = feature.properties || {};
-
-        let html = "";
-
-        html += `
-          <b>Componente:</b>
-          ${nomes[nomes.length-1]}
-          <br><br>
-        `;
-
-        Object.entries(props).forEach(([k,v])=>{
-          html += `<b>${k}:</b> ${v}<br>`;
-        });
-
-        layer.bindPopup(html);
-
-      }
-
+  // remove layers antigas
+  Object.values(layersComponentes)
+    .forEach(l=>{
+      map.removeLayer(l);
     });
 
-    adicionarNaArvore(nomes, layer);
+  layersComponentes = {};
 
-  });
+  const tipos = [
+    "Chave",
+    "Religador",
+    "Trecho",
+    "Transformador"
+  ];
 
-  const treeData = {
-    label: "Componentes",
-    children: Object.values(arvoreKML)
-  };
+  const div =
+    document.getElementById("camadas");
 
-  controleCamadas = L.control.layers.tree(
-    null,
-    treeData,
-    {
-      collapsed:false
-    }
-  ).addTo(map);
+  div.innerHTML = "";
 
-}
+  for(const tipo of tipos){
 
-function adicionarNaArvore(caminho, layer){
+    const id =
+      "camada_" + tipo;
 
-  let atual = arvoreKML;
+    div.innerHTML += `
+      <label style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        margin-top:8px;
+        font-size:13px;
+      ">
+        <input
+          type="checkbox"
+          id="${id}"
+          onchange="toggleComponente('${tipo}')"
+        >
 
-  caminho.forEach((parte, index)=>{
+        ${tipo}
+      </label>
+    `;
 
-    if(!atual[parte]){
-      atual[parte] = {
-        label: parte,
-        children: []
-      };
-    }
-
-    // último nível
-    if(index === caminho.length - 1){
-
-      atual[parte].children.push({
-        label: parte,
-        layer: layer
-      });
-
-    }
-
-    atual = atual[parte];
-
-  });
-
-}
-  function mostrarKML(){
-
-  if(!geojsonKML){
-    return alert("Carregue um KML primeiro");
   }
 
-  // remove layer antiga
-  if(layerKMLAtual){
-    map.removeLayer(layerKMLAtual);
+}
+  async function toggleComponente(tipo){
+
+  // remove layer
+  if(layersComponentes[tipo]){
+
+    map.removeLayer(
+      layersComponentes[tipo]
+    );
+
+    delete layersComponentes[tipo];
+
+    return;
   }
 
   const alim = [
-  ...document.getElementById("alim").selectedOptions
-].map(o => o.value.toUpperCase());
+    ...document.getElementById("alim")
+      .selectedOptions
+  ].map(o => o.value);
 
-  // 🔥 FILTRO
-  const filtrado = {
-    ...geojsonKML,
-    features: geojsonKML.features.filter(f => {
+  const params = new URLSearchParams();
 
-      if(!alim.length) return false;
+  params.append("tipo", tipo);
 
-      const props = f.properties || {};
+  alim.forEach(a=>{
+    params.append("alim", a);
+  });
 
-      const texto = JSON.stringify(props)
-        .toUpperCase();
-
-      return alim.some(a =>
-    texto.includes(a)
+  const res = await fetch(
+    "https://despacholinhaviva.pedro-fillype.workers.dev/api/componentes?" +
+    params.toString()
   );
 
-    })
+  const json = await res.json();
+
+  const geojson = {
+
+    type:"FeatureCollection",
+
+    features: json.dados.map(c => ({
+
+      type:"Feature",
+
+      properties:{
+        nome:c.nome,
+        tipo:c.tipo
+      },
+
+      geometry: JSON.parse(c.geojson)
+
+    }))
+
   };
 
-  status.innerText =
-    "Renderizando " +
-    filtrado.features.length +
-    " elementos";
+  const layer = L.geoJSON(geojson, {
 
-  layerKMLAtual = L.geoJSON(filtrado, {
-
-    style: feature => {
-
-      return {
-        color: "#22c55e",
-        weight: 2
-      };
-
+    style:{
+      color:"#22c55e",
+      weight:2
     },
 
-    pointToLayer: (feature, latlng) => {
+    pointToLayer:(f,latlng)=>{
 
-      return L.circleMarker(latlng, {
-        radius: 4,
-        fillColor: "#facc15",
-        color: "#fff",
-        weight: 1,
-        fillOpacity: 1
+      return L.circleMarker(latlng,{
+        radius:4,
+        fillColor:"#3b82f6",
+        color:"#fff",
+        weight:1,
+        fillOpacity:1
       });
 
     },
 
-    onEachFeature: (feature, layer) => {
+    onEachFeature:(feature,layer)=>{
 
-      let props = feature.properties || {};
+      layer.bindPopup(`
+        <b>Componente:</b>
+        ${feature.properties.nome}<br>
 
-      let html = "";
-
-      Object.entries(props).forEach(([k,v])=>{
-        html += `<b>${k}:</b> ${v}<br>`;
-      });
-
-      layer.bindPopup(html);
+        <b>Tipo:</b>
+        ${feature.properties.tipo}
+      `);
 
     }
 
   });
 
-  layerKMLAtual.addTo(map);
+  layer.addTo(map);
+
+  layersComponentes[tipo] = layer;
 
 }
+
 
 /* MAP */
 function init(){
@@ -846,9 +864,22 @@ async function carregar(){
 
 try {
 
-  const res = await fetch(
-    "https://despacholinhaviva.pedro-fillype.workers.dev/api/dados"
-  );
+  const params = new URLSearchParams();
+
+if(busca) params.append("busca", busca);
+if(crit) params.append("crit", crit);
+if(tipo) params.append("tipo", tipo);
+if(soma) params.append("soma", soma);
+if(sgm) params.append("sgm", sgm);
+
+alim.forEach(a=>{
+  params.append("alim", a);
+});
+
+const res = await fetch(
+  "https://despacholinhaviva.pedro-fillype.workers.dev/api/dados?" +
+  params.toString()
+);
 
   dados = await res.json();
 
