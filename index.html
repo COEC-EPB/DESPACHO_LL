@@ -337,15 +337,44 @@ function toggleMenu(){
   document.getElementById("sidebar").classList.toggle("hidden");
 }
 
-  function limparFiltros(){
-  document.getElementById("busca").value="";
-  document.getElementById("crit").value="";
-  document.getElementById("tipo").value="";
-  document.getElementById("soma").value="";
-  document.getElementById("sgm").value="";
-  document.getElementById("alim").value="";
+ function limparFiltros(){
 
+  // texto
+  document.getElementById("busca").value = "";
+  document.getElementById("sgm").value = "";
+
+  // selects simples
+  document.getElementById("crit").selectedIndex = 0;
+  document.getElementById("tipo").selectedIndex = 0;
+  document.getElementById("soma").selectedIndex = 0;
+
+  // multi alimentador
+  const alim =
+    document.getElementById("alim");
+
+  [...alim.options].forEach(o=>{
+    o.selected = false;
+  });
+
+  // remove componentes
+  Object.values(layersComponentes)
+    .forEach(l=>{
+      map.removeLayer(l);
+    });
+
+  layersComponentes = {};
+
+  // limpa checkboxes
+  document.getElementById("camadas")
+    .innerHTML = "";
+
+  // limpa filtros ativos
+  document.getElementById("filtrosAtivos")
+    .innerText = "";
+
+  // recarrega tudo
   carregar();
+
 }
 /* LEGENDA */
 function toggleLegenda(){
@@ -986,9 +1015,16 @@ dados.forEach(p => {
 
 });
 
-preencher("tipo", setTipo);
-preencher("soma", setSoma);
-preencher("alim", setAlim);
+if(
+  !document.getElementById("tipo").options.length ||
+  document.getElementById("tipo").options.length === 1
+){
+
+  preencher("tipo", setTipo);
+  preencher("soma", setSoma);
+  preencher("alim", setAlim);
+
+}
 
 // =========================
 // MAPA
