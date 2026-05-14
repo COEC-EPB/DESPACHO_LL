@@ -382,7 +382,7 @@ function toggleLegenda(){
   document.getElementById("listaOS").innerText = "";
 }
 
- async function carregarKML(){
+async function carregarKML(){
 
   const file = document.getElementById("kmlFile").files[0];
 
@@ -399,62 +399,72 @@ function toggleLegenda(){
     "text/xml"
   );
 
-  // remove controle antigo
+  // remove antigo
   if(controleCamadas){
     map.removeControl(controleCamadas);
   }
 
-  layersKML = {};
+  arvoreKML = {};
 
-  // procura folders
-  const folders = xml.getElementsByTagName("Folder");
+  const folders = xml.querySelectorAll("Folder");
 
-  for(const folder of folders){
+  folders.forEach(folder => {
 
-    const nome =
-      folder.getElementsByTagName("name")[0]
-      ?.textContent
-      ?.trim();
+    const nomes = [];
 
-    if(!nome) continue;
+    let atual = folder;
 
-    // converte apenas essa pasta
+    while(atual){
+
+      const nome =
+        atual.querySelector(":scope > name")
+        ?.textContent
+        ?.trim();
+
+      if(nome){
+        nomes.unshift(nome);
+      }
+
+      atual = atual.parentElement?.closest("Folder");
+
+    }
+
     const geojson = toGeoJSON.kml(folder);
 
-    // ignora vazios
     if(!geojson.features?.length){
-      continue;
+      return;
     }
 
     const layer = L.geoJSON(geojson, {
 
-      style: feature => {
-
-        return {
-          color: "#22c55e",
-          weight: 2
-        };
-
+      style:{
+        color:"#22c55e",
+        weight:2
       },
 
-      pointToLayer: (feature, latlng) => {
+      pointToLayer:(f,latlng)=>{
 
-        return L.circleMarker(latlng, {
-          radius: 5,
-          fillColor: "#3b82f6",
-          color: "#fff",
-          weight: 1,
-          fillOpacity: 1
+        return L.circleMarker(latlng,{
+          radius:5,
+          fillColor:"#3b82f6",
+          color:"#fff",
+          weight:1,
+          fillOpacity:1
         });
 
       },
 
-      onEachFeature: (feature, layer) => {
+      onEachFeature:(feature,layer)=>{
 
         const props = feature.properties || {};
 
-        let html =
-          `<b>Componente:</b> ${nome}<br><br>`;
+        let html = "";
+
+        html += `
+          <b>Componente:</b>
+          ${nomes[nomes.length-1]}
+          <br><br>
+        `;
 
         Object.entries(props).forEach(([k,v])=>{
           html += `<b>${k}:</b> ${v}<br>`;
@@ -466,22 +476,22 @@ function toggleLegenda(){
 
     });
 
-    layersKML["Componente: " + nome] = layer;
+    adicionarNaArvore(nomes, layer);
 
-  }
+  });
 
-  controleCamadas = L.control.layers(
+  const treeData = {
+    label: "Componentes",
+    children: Object.values(arvoreKML)
+  };
+
+  controleCamadas = L.control.layers.tree(
     null,
-    layersKML,
+    treeData,
     {
-      collapsed: false
+      collapsed:false
     }
   ).addTo(map);
-
-  alert(
-    Object.keys(layersKML).length +
-    " camadas carregadas"
-  );
 
 }
 
