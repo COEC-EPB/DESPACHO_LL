@@ -10,6 +10,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+  <link
+  href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css"
+  rel="stylesheet"
+/>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 
 
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
@@ -123,6 +129,52 @@ button { background:#22c55e; cursor:pointer; }
   overflow:auto;
   font-size:12px;
 }
+  #painelCamadas{
+  position:absolute;
+  top:60px;
+  right:20px;
+
+  width:260px;
+  max-height:70vh;
+
+  overflow:auto;
+
+  background:#020617;
+  border-radius:14px;
+
+  padding:15px;
+
+  z-index:9999;
+
+  display:none;
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.4);
+}
+
+#tituloCamadas{
+  font-weight:bold;
+  margin-bottom:15px;
+  font-size:15px;
+}
+
+.camada-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  margin-top:10px;
+
+  padding:8px;
+
+  border-radius:8px;
+
+  background:#1e293b;
+}
+
+.camada-item:hover{
+  background:#334155;
+}
 </style>
 
 </head>
@@ -179,6 +231,13 @@ button { background:#22c55e; cursor:pointer; }
   <div style="display:flex; gap:10px;">
     <button onclick="toggleMenu()">☰ Menu</button>
     <button onclick="toggleLegenda()">📊 Legenda</button>
+    <button
+  id="btnCamadas"
+  onclick="toggleCamadas()"
+  style="display:none;"
+>
+  🗂 Camadas
+</button>
   </div>
 </div>
 
@@ -256,6 +315,10 @@ button { background:#22c55e; cursor:pointer; }
 
 <div id="camadas"></div>
 
+  <div id="tituloCamadas">
+    🌎 Componentes
+  </div>
+
   <hr>
 <h3>📋 OS Selecionadas</h3>
 <div id="listaOS" style="max-height:200px; overflow:auto; font-size:12px;"></div>
@@ -291,6 +354,7 @@ let coresTipo = {};
 let legendaControl = null;
 let legendaVisivel = false;
 let layersComponentes = {};
+let selectAlim = null;
 
 const paleta = ["#3b82f6","#22c55e","#facc15","#ef4444","#a855f7","#06b6d4","#f97316"];
 
@@ -335,6 +399,19 @@ function logout(){
 /* MENU */
 function toggleMenu(){
   document.getElementById("sidebar").classList.toggle("hidden");
+}
+  function toggleCamadas(){
+
+  const p =
+    document.getElementById(
+      "painelCamadas"
+    );
+
+  p.style.display =
+    p.style.display === "block"
+      ? "none"
+      : "block";
+
 }
 
  function limparFiltros(){
@@ -500,14 +577,13 @@ async function carregarKML(){
     json.total +
     " componentes importados"
   );
+  document.getElementById("btnCamadas")
+  .style.display = "block";
 
 }
   async function carregarComponentes(){
 
-  const alim = [
-    ...document.getElementById("alim")
-      .selectedOptions
-  ].map(o => o.value);
+  const alim = selectAlim.items;
 
   // remove layers antigas
   Object.values(layersComponentes)
@@ -535,7 +611,7 @@ async function carregarKML(){
       "camada_" + tipo;
 
     div.innerHTML += `
-      <label style="
+      <label class="camada-item""
         display:flex;
         align-items:center;
         gap:8px;
@@ -569,10 +645,7 @@ async function carregarKML(){
     return;
   }
 
-  const alim = [
-    ...document.getElementById("alim")
-      .selectedOptions
-  ].map(o => o.value);
+  const alim = selectAlim.items;
 
   const params = new URLSearchParams();
 
@@ -877,9 +950,45 @@ xhr.send(JSON.stringify(json));
 
 /* FILTROS */
 function preencher(id,set){
-  const el=document.getElementById(id);
-  el.innerHTML='<option value="">Todos</option>';
-  [...set].sort().forEach(v=> el.innerHTML+=`<option>${v}</option>`);
+
+  const valores =
+    [...set].sort();
+
+  // alimentador
+  if(id === "alim"){
+
+    selectAlim.clear();
+    selectAlim.clearOptions();
+
+    valores.forEach(v=>{
+
+      selectAlim.addOption({
+        value:v,
+        text:v
+      });
+
+    });
+
+    selectAlim.refreshOptions(false);
+
+    return;
+  }
+
+  // normal
+  const el =
+    document.getElementById(id);
+
+  el.innerHTML =
+    '<option value="">Todos</option>';
+
+  valores.forEach(v=>{
+
+    el.innerHTML += `
+      <option>${v}</option>
+    `;
+
+  });
+
 }
 
 /* CARREGAR */
@@ -910,10 +1019,7 @@ const sgm = document
   .trim()
   .toUpperCase();
 
-const alim = [
-  ...document.getElementById("alim")
-    .selectedOptions
-].map(o => o.value);
+const alim = selectAlim.items;
 
 // =========================
 // PARAMS
@@ -1169,6 +1275,17 @@ document.getElementById("filtrosAtivos")
     document.getElementById("app").style.display="block";
 
     init();
+    selectAlim = new TomSelect(
+  "#alim",
+  {
+    plugins:['remove_button'],
+
+    placeholder:
+      "Selecione alimentadores",
+
+    maxOptions:5000
+  }
+);
     carregar();
   }
 
