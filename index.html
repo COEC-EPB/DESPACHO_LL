@@ -528,26 +528,7 @@ async function carregarKML(){
   const geojson = toGeoJSON.kml(xml);
 
   // NORMALIZA FEATURES
-  const features = geojson.features
-.filter(f => {
-
-  // sem geometria
-  if(!f.geometry){
-    return false;
-  }
-
-  // sem coordinates
-  if(
-    !f.geometry.coordinates &&
-    f.geometry.type !== "GeometryCollection"
-  ){
-    return false;
-  }
-
-  return true;
-
-})
-.map(f => {map(f => {
+  const features = geojson.features.map(f => {
 
     const props = f.properties || {};
 
@@ -742,30 +723,12 @@ const tipos = json.dados.map(
     );
 
     const json = await res.json();
-    console.log(json.dados);
 
     const geojson = {
 
       type:"FeatureCollection",
 
-      features: json.dados
-.filter(c => {
-
-  try {
-
-    const g =
-      JSON.parse(c.geojson);
-
-    return g && g.type;
-
-  } catch {
-
-    return false;
-
-  }
-
-})
-.map(c => ({
+      features: json.dados.map(c => ({
 
         type:"Feature",
 
@@ -786,30 +749,20 @@ const tipos = json.dados.map(
 
         style: feature => {
 
-  if(
-    feature.geometry.type.includes("Line")
-  ){
+          // linhas
+          if(
+            feature.geometry.type
+              .includes("Line")
+          ){
 
-    return {
-      color:"#22c55e",
-      weight:2
-    };
+            return {
+              color:"#22c55e",
+              weight:2
+            };
 
-  }
+          }
 
-  if(
-    feature.geometry.type.includes("Polygon")
-  ){
-
-    return {
-      color:"#3b82f6",
-      weight:2,
-      fillOpacity:0.2
-    };
-
-  }
-
-},,
+        },
 
         pointToLayer:
           (feature,latlng)=>{
@@ -858,9 +811,6 @@ const tipos = json.dados.map(
     );
 
     layer.addTo(map);
-    try{
-  map.fitBounds(layer.getBounds());
-}catch{}
 
     layersComponentes[tipo] =
       layer;
