@@ -529,13 +529,14 @@ async function carregarKML(){
 
   // NORMALIZA FEATURES
   const features = geojson.features
-
 .filter(f => {
 
+  // sem geometria
   if(!f.geometry){
     return false;
   }
 
+  // sem coordinates
   if(
     !f.geometry.coordinates &&
     f.geometry.type !== "GeometryCollection"
@@ -546,70 +547,69 @@ async function carregarKML(){
   return true;
 
 })
+.map(f => {map(f => {
 
-.map(f => {
+    const props = f.properties || {};
 
-  const props = f.properties || {};
+    return {
 
-  return {
+      type: "Feature",
 
-    type: "Feature",
+      properties: {
 
-    properties: {
+        name:
+          props.name || "",
 
-      name:
-        props.name || "",
+        tipo: (() => {
 
-      tipo: (() => {
+  const texto = JSON.stringify(props)
+    .toUpperCase();
 
-        const texto = JSON.stringify(props)
-          .toUpperCase();
+  if(texto.includes("CHAVE")){
+    return "Chave";
+  }
 
-        if(texto.includes("CHAVE")){
-          return "Chave";
-        }
+  if(texto.includes("RELIG")){
+    return "Religador";
+  }
 
-        if(texto.includes("RELIG")){
-          return "Religador";
-        }
+  if(texto.includes("TRECHO")){
+    return "Trecho";
+  }
 
-        if(texto.includes("TRECHO")){
-          return "Trecho";
-        }
+  if(texto.includes("TRANSF")){
+    return "Transformador";
+  }
 
-        if(texto.includes("TRANSF")){
-          return "Transformador";
-        }
+  if(texto.includes("REGUL")){
+    return "Regulador";
+  }
 
-        if(texto.includes("REGUL")){
-          return "Regulador";
-        }
+  if(texto.includes("CAPAC")){
+    return "Capacitor";
+  }
 
-        if(texto.includes("CAPAC")){
-          return "Capacitor";
-        }
+  return "Componente";
 
-        return "Componente";
+})(),
 
-      })(),
+        alimentador:
+          props.alimentador ||
+          props.Alimentador ||
+          "",
 
-      alimentador:
-        props.alimentador ||
-        props.Alimentador ||
-        "",
+        camada:
+          props.layer ||
+          props.camada ||
+          "Geral"
 
-      camada:
-        props.layer ||
-        props.camada ||
-        "Geral"
+      },
 
-    },
+      geometry: f.geometry
 
-    geometry: f.geometry
+    };
 
-  };
-
-});
+  });
 
   status.innerText =
     "Enviando para o banco...";
@@ -678,19 +678,22 @@ const tipos = json.dados.map(
       "camada_" + tipo;
 
     div.innerHTML += `
-  <label class="camada-item">
+      <label class="camada-item"
+        display:flex;
+        align-items:center;
+        gap:8px;
+        margin-top:8px;
+        font-size:13px;
+      ">
+        <input
+          type="checkbox"
+          id="${id}"
+          data-tipo="${tipo}"
+        >
 
-    <input
-      type="checkbox"
-      id="${id}"
-      data-tipo="${tipo}"
-      onchange="toggleComponente('${tipo}')"
-    >
-
-    ${tipo}
-
-  </label>
-`;
+        ${tipo}
+      </label>
+    `;
 
   }
 
@@ -806,7 +809,7 @@ const tipos = json.dados.map(
 
   }
 
-},
+},,
 
         pointToLayer:
           (feature,latlng)=>{
