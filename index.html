@@ -217,6 +217,112 @@ button { background:#22c55e; cursor:pointer; }
 #painelCamadas .camada-item{
   justify-content:space-between;
 }
+  /* POPUP DAS OS */
+.popup-os {
+  min-width: 260px;
+  max-width: 340px;
+  color: #1e293b;
+  font-family: Arial, sans-serif;
+}
+
+.popup-os-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+
+  border-bottom: 1px solid #e2e8f0;
+
+  font-size: 16px;
+  font-weight: bold;
+  color: #0f172a;
+}
+
+.popup-os-linha {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.popup-os-linha b {
+  color: #475569;
+}
+
+.popup-os-badge {
+  display: inline-block;
+
+  padding: 4px 8px;
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+}
+
+.popup-os-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+
+  margin-top: 13px;
+}
+
+.popup-os-botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 36px;
+  padding: 8px 10px;
+
+  border: none;
+  border-radius: 7px;
+
+  color: white !important;
+  text-decoration: none !important;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.popup-os-maps {
+  background: #2563eb;
+}
+
+.popup-os-copiar {
+  background: #16a34a;
+}
+
+.popup-os-botao:hover {
+  filter: brightness(0.92);
+}
+
+.popup-os-coordenadas {
+  margin-top: 8px;
+  padding: 7px;
+
+  background: #f1f5f9;
+  border-radius: 6px;
+
+  color: #64748b;
+  font-size: 10px;
+  text-align: center;
+}
+
+/* Corrige o tamanho padrão do popup Leaflet */
+.leaflet-popup-content {
+  margin: 14px;
+}
+
+/* Evita que o estilo geral de button deixe
+   o botão do popup com largura ou margem incorreta */
+.leaflet-popup-content button {
+  width: auto;
+  margin: 0;
+}
 </style>
 
 </head>
@@ -1146,6 +1252,174 @@ function preencher(id,set){
 
 }
 
+  function valorSeguro(valor) {
+  if (
+    valor === null ||
+    valor === undefined ||
+    String(valor).trim() === "" ||
+    String(valor).toLowerCase() === "null" ||
+    String(valor).toLowerCase() === "undefined"
+  ) {
+    return "-";
+  }
+
+  return String(valor).trim();
+}
+
+function escaparHTML(valor) {
+  return valorSeguro(valor)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function corCriticidade(criticidade) {
+  const valor = valorSeguro(criticidade).toUpperCase();
+
+  if (valor.includes("URGENTE")) {
+    return "#b91c1c";
+  }
+
+  if (valor.includes("ALTA")) {
+    return "#ef4444";
+  }
+
+  if (
+    valor.includes("MEDIA") ||
+    valor.includes("MÉDIA")
+  ) {
+    return "#f59e0b";
+  }
+
+  if (valor.includes("BAIXA")) {
+    return "#22c55e";
+  }
+
+  return "#64748b";
+}
+
+function copiarSGMPopup(sgm) {
+  const valor = valorSeguro(sgm);
+
+  if (valor === "-") {
+    alert("Esta OS não possui SGM informado.");
+    return;
+  }
+
+  navigator.clipboard
+    .writeText(valor)
+    .then(() => {
+      alert("SGM " + valor + " copiado!");
+    })
+    .catch(() => {
+
+      // Alternativa para navegador que bloqueia clipboard
+      const textarea = document.createElement("textarea");
+
+      textarea.value = valor;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+
+      document.body.appendChild(textarea);
+
+      textarea.select();
+      document.execCommand("copy");
+
+      textarea.remove();
+
+      alert("SGM " + valor + " copiado!");
+    });
+}
+
+function criarPopupOS(p, lat, lon) {
+
+  const os = escaparHTML(p.os);
+  const statusOS = escaparHTML(p.status);
+  const tipoServico = escaparHTML(p.tipo);
+  const alimentador = escaparHTML(p.alimentador);
+  const criticidade = escaparHTML(p.criticidade);
+  const tag = escaparHTML(p.tag);
+  const sgm = escaparHTML(p.sgm);
+  const soma = escaparHTML(p.soma);
+
+  const latitude = Number(lat);
+  const longitude = Number(lon);
+
+  const urlGoogleMaps =
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent(latitude + "," + longitude);
+
+  const cor = corCriticidade(p.criticidade);
+
+  return `
+    <div class="popup-os">
+
+      <div class="popup-os-titulo">
+        <span>OS ${os}</span>
+
+        <span
+          class="popup-os-badge"
+          style="background:${cor};"
+        >
+          ${criticidade}
+        </span>
+      </div>
+
+      <div class="popup-os-linha">
+        <b>Status:</b> ${statusOS}
+      </div>
+
+      <div class="popup-os-linha">
+        <b>Tipo de Serviço:</b> ${tipoServico}
+      </div>
+
+      <div class="popup-os-linha">
+        <b>Alimentador:</b> ${alimentador}
+      </div>
+
+      <div class="popup-os-linha">
+        <b>Tag:</b> ${tag}
+      </div>
+
+      <div class="popup-os-linha">
+        <b>SOMA:</b> ${soma}
+      </div>
+
+      <div class="popup-os-linha">
+        <b>OS SGM:</b> ${sgm}
+      </div>
+
+      <div class="popup-os-coordenadas">
+        ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
+      </div>
+
+      <div class="popup-os-acoes">
+
+        <button
+          type="button"
+          class="popup-os-botao popup-os-copiar"
+          onclick='copiarSGMPopup(${JSON.stringify(valorSeguro(p.sgm))})'
+        >
+          📋 Copiar SGM
+        </button>
+
+        <a
+          class="popup-os-botao popup-os-maps"
+          href="${urlGoogleMaps}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          📍 Google Maps
+        </a>
+
+      </div>
+
+    </div>
+  `;
+}
+
 /* CARREGAR */
 async function carregar(){
 
@@ -1331,15 +1605,16 @@ dados.forEach(p => {
 
   });
 
-  marker.bindPopup(`
-    <b>OS:</b> ${p.os}<br>
-    <b>Status:</b> ${p.status}<br>
-    <b>Tipo:</b> ${p.tipo}<br>
-    <b>Alimentador:</b> ${p.alimentador}<br>
-    <b>Criticidade:</b> ${p.criticidade}<br>
-    <b>Tag:</b> ${p.tag}<br>
-    <b>OS SGM:</b> ${p.sgm}<br>
-  `);
+  marker.bindPopup(
+  criarPopupOS(p, lat, lon),
+  {
+    maxWidth: 360,
+    minWidth: 280,
+    closeButton: true,
+    autoPan: true,
+    autoPanPadding: [30, 30]
+  }
+);
 
   marker.on('click', function (e) {
 
